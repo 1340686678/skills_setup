@@ -1,0 +1,3 @@
+# 运行时数据与本地配置，不入库
+.reasonix/
+reasonix.toml
