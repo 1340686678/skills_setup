@@ -91,16 +91,19 @@ cp -r chinese-code-review "$HOME/.agents/skills/"
 
 ```powershell
 # Windows（在仓库目录内）
-.\setup.ps1
+.\setup.ps1              # 默认 SSH 克隆
+.\setup.ps1 -Https       # 无 SSH key 时用 HTTPS
 ```
 
 ```bash
 # Linux / macOS（在仓库目录内）
-chmod +x setup.sh && ./setup.sh
+chmod +x setup.sh && ./setup.sh          # 默认 SSH 克隆
+./setup.sh --https                       # 无 SSH key 时用 HTTPS
 ```
 
 脚本行为：克隆 `sphwl/my_skills.git` → 复制全部 skill 到 `~/.agents/skills` → 复制到 `~/.claude/skills`。
 已有目录会自动跳过（不会覆盖现有文件），可传 `-Force` / `--force` 强制覆盖。
+克隆失败时会提示原因（SSH key 未配置 → 加 `--https`；网络不通 → 检查代理）。
 
 ---
 

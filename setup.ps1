@@ -4,7 +4,8 @@
 # 下载源： git@github.com:sphwl/my_skills.git（含全部 24 个 skill）
 
 param(
-    [switch]$Force
+    [switch]$Force,
+    [switch]$Https   # 使用 HTTPS 而非 SSH 克隆（无 SSH key 时用）
 )
 
 $ErrorActionPreference = "Stop"
@@ -19,16 +20,28 @@ function Write-Step($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
 
 # 1. 克隆下载源
 if (Test-Path $TMP_CLONE) {
-    if ($Force) { Remove-Item $TMP_CLONE -Recurse -Force }
-    else { Write-Step "使用已有临时克隆: $TMP_CLONE" }
+    $isValid = Test-Path (Join-Path $TMP_CLONE ".git")
+    if ($isValid -and -not $Force) {
+        Write-Step "使用已有临时克隆: $TMP_CLONE"
+    } else {
+        # 残留目录或 -Force：清掉重新克隆
+        Remove-Item $TMP_CLONE -Recurse -Force
+    }
 }
-if (-not (Test-Path (Join-Path $TMP_CLONE ".git"))) {
-    Write-Step "克隆下载源 $SOURCE_REPO ..."
-    git clone --depth 1 $SOURCE_REPO $TMP_CLONE 2>$null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warning "SSH 克隆失败，改用 HTTPS ..."
+if (-not (Test-Path $TMP_CLONE)) {
+    if ($Https) {
+        Write-Step "使用 HTTPS 克隆 $SOURCE_REPO_HTTPS ..."
         git clone --depth 1 $SOURCE_REPO_HTTPS $TMP_CLONE
-        if ($LASTEXITCODE -ne 0) { throw "克隆失败，请检查网络与仓库权限" }
+    } else {
+        Write-Step "克隆下载源 $SOURCE_REPO ..."
+        git clone --depth 1 $SOURCE_REPO $TMP_CLONE
+    }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "" -NoNewline
+        Write-Host "克隆失败。可能原因：" -ForegroundColor Yellow
+        Write-Host "  1. 未配置 SSH key → 改用 .\setup.ps1 -Https"
+        Write-Host "  2. 网络无法访问 github.com → 检查代理/网络"
+        throw "克隆失败（exit=$LASTEXITCODE），可加 -Https 参数重试"
     }
 }
 

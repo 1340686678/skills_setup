@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # setup.sh — 一键布置自定义 skills（Linux / macOS / Git Bash）
-# 用法： ./setup.sh          （克隆 + 布置；已存在目录跳过）
-#        ./setup.sh --force  （强制覆盖已有文件）
+# 用法： ./setup.sh            （克隆 + 布置；已存在目录跳过）
+#        ./setup.sh --force   （强制覆盖已有文件）
+#        ./setup.sh --https   （用 HTTPS 克隆，无 SSH key 时用）
 # 下载源： git@github.com:sphwl/my_skills.git（含全部 24 个 skill）
 
 set -euo pipefail
@@ -13,26 +14,47 @@ AGENTS_DIR="$HOME_DIR/.agents/skills"
 CLAUDE_DIR="$HOME_DIR/.claude/skills"
 TMP_CLONE="${TMPDIR:-/tmp}/my_skills_setup"
 FORCE=0
+HTTPS=0
 
 for arg in "$@"; do
   case "$arg" in
     --force|-f) FORCE=1 ;;
+    --https)    HTTPS=1 ;;
     -h|--help)
-      echo "用法: $0 [--force]"; echo "  克隆下载源并布置 skills 到 ~/.agents/skills 和 ~/.claude/skills"; exit 0 ;;
+      echo "用法: $0 [--force] [--https]"
+      echo "  克隆下载源并布置 skills 到 ~/.agents/skills 和 ~/.claude/skills"
+      echo "  --https  用 HTTPS 克隆（无 SSH key 时用）"
+      exit 0 ;;
   esac
 done
 
 step() { echo "==> $*" >&2; }
 
 # 1. 克隆下载源
-if [ -d "$TMP_CLONE/.git" ] && [ "$FORCE" = "1" ]; then
-  rm -rf "$TMP_CLONE"
+if [ -e "$TMP_CLONE" ]; then
+  if [ -d "$TMP_CLONE/.git" ] && [ "$FORCE" != "1" ]; then
+    step "使用已有临时克隆: $TMP_CLONE"
+  else
+    # 残留目录或 --force：清掉重新克隆
+    rm -rf "$TMP_CLONE"
+  fi
 fi
-if [ ! -d "$TMP_CLONE/.git" ]; then
-  step "克隆下载源 $SOURCE_REPO ..."
-  if ! git clone --depth 1 "$SOURCE_REPO" "$TMP_CLONE" 2>/dev/null; then
-    step "SSH 克隆失败，改用 HTTPS ..."
-    git clone --depth 1 "$SOURCE_REPO_HTTPS" "$TMP_CLONE"
+if [ ! -e "$TMP_CLONE" ]; then
+  if [ "$HTTPS" = "1" ]; then
+    step "使用 HTTPS 克隆 $SOURCE_REPO_HTTPS ..."
+    if ! git clone --depth 1 "$SOURCE_REPO_HTTPS" "$TMP_CLONE"; then
+      echo "克隆失败。可能原因：" >&2
+      echo "  1. 网络无法访问 github.com → 检查代理/网络" >&2
+      exit 1
+    fi
+  else
+    step "克隆下载源 $SOURCE_REPO ..."
+    if ! git clone --depth 1 "$SOURCE_REPO" "$TMP_CLONE"; then
+      echo "克隆失败。可能原因：" >&2
+      echo "  1. 未配置 SSH key → 改用 ./setup.sh --https" >&2
+      echo "  2. 网络无法访问 github.com → 检查代理/网络" >&2
+      exit 1
+    fi
   fi
 else
   step "使用已有临时克隆: $TMP_CLONE"
