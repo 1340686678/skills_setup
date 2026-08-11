@@ -14,7 +14,7 @@ $SOURCE_REPO = "git@github.com:sphwl/my_skills.git"
 $SOURCE_REPO_HTTPS = "https://github.com/sphwl/my_skills.git"
 $AGENTS_DIR = Join-Path $HOME ".agents\skills"
 $CLAUDE_DIR = Join-Path $HOME ".claude\skills"
-$TMP_CLONE = Join-Path $env:TEMP "my_skills_setup"
+$TMP_CLONE = Join-Path $env:TEMP ("my_skills_setup_" + [System.IO.Path]::GetRandomFileName())
 
 function Write-Step($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
 
@@ -51,7 +51,10 @@ New-Item -ItemType Directory -Force -Path $AGENTS_DIR | Out-Null
 Get-ChildItem $TMP_CLONE -Directory | ForEach-Object {
     $dest = Join-Path $AGENTS_DIR $_.Name
     if (Test-Path $dest) {
-        if ($Force) { Copy-Item $_.FullName $dest -Recurse -Force }
+        if ($Force) {
+            Remove-Item $dest -Recurse -Force
+            Copy-Item $_.FullName $dest -Recurse
+        }
         else { Write-Host "  skip (exists): $($_.Name)" }
     } else {
         Copy-Item $_.FullName $dest -Recurse
@@ -66,13 +69,17 @@ New-Item -ItemType Directory -Force -Path $CLAUDE_DIR | Out-Null
 Get-ChildItem $TMP_CLONE -Directory | ForEach-Object {
     $dest = Join-Path $CLAUDE_DIR $_.Name
     if (Test-Path $dest) {
-        if ($Force) { Copy-Item $_.FullName $dest -Recurse -Force }
+        if ($Force) {
+            Remove-Item $dest -Recurse -Force
+            Copy-Item $_.FullName $dest -Recurse
+        }
         else { Write-Host "  skip (exists): $($_.Name)" }
     } else {
         Copy-Item $_.FullName $dest -Recurse
         Write-Host "  install: $($_.Name)"
     }
 }
+Copy-Item (Join-Path $TMP_CLONE "README.md") (Join-Path $CLAUDE_DIR "README.md") -Force -ErrorAction SilentlyContinue
 
 # 4. Cleanup temp clone
 if (Test-Path $TMP_CLONE) { Remove-Item $TMP_CLONE -Recurse -Force }

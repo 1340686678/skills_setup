@@ -12,7 +12,7 @@ SOURCE_REPO_HTTPS="https://github.com/sphwl/my_skills.git"
 HOME_DIR="${HOME:-$USERPROFILE}"
 AGENTS_DIR="$HOME_DIR/.agents/skills"
 CLAUDE_DIR="$HOME_DIR/.claude/skills"
-TMP_CLONE="${TMPDIR:-/tmp}/my_skills_setup"
+TMP_CLONE="$(mktemp -d "${TMPDIR:-/tmp}/my_skills_setup.XXXXXX")"
 FORCE=0
 HTTPS=0
 
@@ -30,34 +30,21 @@ done
 
 step() { echo "==> $*" >&2; }
 
-# 1. 克隆下载源
-if [ -e "$TMP_CLONE" ]; then
-  if [ -d "$TMP_CLONE/.git" ] && [ "$FORCE" != "1" ]; then
-    step "使用已有临时克隆: $TMP_CLONE"
-  else
-    # 残留目录或 --force：清掉重新克隆
-    rm -rf "$TMP_CLONE"
-  fi
-fi
-if [ ! -e "$TMP_CLONE" ]; then
-  if [ "$HTTPS" = "1" ]; then
-    step "使用 HTTPS 克隆 $SOURCE_REPO_HTTPS ..."
-    if ! git clone --depth 1 "$SOURCE_REPO_HTTPS" "$TMP_CLONE"; then
-      echo "克隆失败。可能原因：" >&2
-      echo "  1. 网络无法访问 github.com → 检查代理/网络" >&2
-      exit 1
-    fi
-  else
-    step "克隆下载源 $SOURCE_REPO ..."
-    if ! git clone --depth 1 "$SOURCE_REPO" "$TMP_CLONE"; then
-      echo "克隆失败。可能原因：" >&2
-      echo "  1. 未配置 SSH key → 改用 ./setup.sh --https" >&2
-      echo "  2. 网络无法访问 github.com → 检查代理/网络" >&2
-      exit 1
-    fi
+# 1. Clone the source repo
+step "Cloning source to $TMP_CLONE ..."
+if [ "$HTTPS" = "1" ]; then
+  if ! git clone --depth 1 "$SOURCE_REPO_HTTPS" "$TMP_CLONE"; then
+    echo "Clone failed. Possible causes:" >&2
+    echo "  1. Cannot reach github.com -> check proxy/network" >&2
+    exit 1
   fi
 else
-  step "使用已有临时克隆: $TMP_CLONE"
+  if ! git clone --depth 1 "$SOURCE_REPO" "$TMP_CLONE"; then
+    echo "Clone failed. Possible causes:" >&2
+    echo "  1. No SSH key configured -> retry with ./setup.sh --https" >&2
+    echo "  2. Cannot reach github.com -> check proxy/network" >&2
+    exit 1
+  fi
 fi
 
 # 2. 布置到 ~/.agents/skills
@@ -94,6 +81,7 @@ for d in "$TMP_CLONE"/*/; do
     cp -r "$d" "$dest"; echo "  安装: $name"
   fi
 done
+[ -f "$TMP_CLONE/README.md" ] && cp -f "$TMP_CLONE/README.md" "$CLAUDE_DIR/README.md" 2>/dev/null || true
 
 # 4. 清理临时克隆
 rm -rf "$TMP_CLONE"

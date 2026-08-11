@@ -74,7 +74,7 @@ cp -r chinese-code-review "$HOME/.agents/skills/"
 | 平台 | 目录 | 说明 |
 |------|------|------|
 | GitHub Copilot / 通用 agents | `~\.agents\skills\` | 自定义 skills 主目录，自动被识别 |
-| Claude Code | `~\.claude\skills\` | 复制自 `.agents\skills`（默认子集 21 个；要完全一致则复制全部） |
+| Claude Code | `~\.claude\skills\` | 脚本复制自 `.agents\skills`，**同样含全部 24 个**（与主目录一致） |
 | Cursor | `~\.cursor\skills-cursor\` | Cursor 官方自带 skills，有 `.sync-manifest.json`，**非自定义，无需部署** |
 | Reasonix（项目级） | `<repo>\.reasonix\skills\` | 仅当需要项目级 skill 时使用 |
 
@@ -121,9 +121,10 @@ Copy-Item "$HOME\.agents\skills\*" "$HOME\.claude\skills\" -Recurse -Force
 ```bash
 git clone --depth 1 git@github.com:sphwl/my_skills.git "$HOME/.agents/skills"
 mkdir -p "$HOME/.claude/skills"
-cp -r "$HOME/.agents/skills"/* "$HOME/.claude/skills/" 2>/dev/null
-rm -f "$HOME/.claude/skills/README.md"
+cp -r "$HOME/.agents/skills"/* "$HOME/.claude/skills/"
 ```
+
+> 手动方式与脚本一致：两个目录都含全部 24 个 skill 及 README.md。
 
 ### 验证
 
